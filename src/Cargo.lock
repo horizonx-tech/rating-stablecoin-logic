@@ -2303,6 +2303,80 @@ dependencies = [
 ]
 
 [[package]]
+name = "variance"
+version = "0.1.0"
+dependencies = [
+ "candid 0.9.11",
+ "chainsight-cdk",
+ "chainsight-cdk-macros",
+ "hex",
+ "ic-cdk 0.11.3",
+ "ic-cdk-macros 0.8.1",
+ "ic-cdk-timers",
+ "ic-solidity-bindgen",
+ "ic-stable-structures",
+ "ic-web3-rs",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "variance_accessors",
+ "variance_bindings",
+]
+
+[[package]]
+name = "variance_accessors"
+version = "0.1.0"
+dependencies = [
+ "candid 0.9.11",
+ "chainsight-cdk",
+ "chainsight-cdk-macros",
+ "hex",
+ "ic-cdk 0.11.3",
+ "ic-cdk-macros 0.8.1",
+ "ic-cdk-timers",
+ "ic-solidity-bindgen",
+ "ic-stable-structures",
+ "ic-web3-rs",
+ "serde",
+ "serde_bytes",
+ "variance_bindings",
+]
+
+[[package]]
+name = "variance_bindings"
+version = "0.1.0"
+dependencies = [
+ "candid 0.9.11",
+ "chainsight-cdk",
+ "chainsight-cdk-macros",
+ "ic-cdk 0.11.3",
+ "ic-stable-structures",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
+name = "variance_canister"
+version = "0.1.0"
+dependencies = [
+ "candid 0.9.11",
+ "chainsight-cdk",
+ "chainsight-cdk-macros",
+ "ciborium",
+ "hex",
+ "ic-cdk 0.11.3",
+ "ic-cdk-macros 0.8.1",
+ "ic-cdk-timers",
+ "ic-solidity-bindgen",
+ "ic-stable-structures",
+ "ic-web3-rs",
+ "serde",
+ "serde_bytes",
+ "variance",
+ "variance_bindings",
+]
+
+[[package]]
 name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

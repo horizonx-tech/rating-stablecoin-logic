@@ -2,3 +2,4 @@ version: v1
 label: rating
 components:
 - component_path: components/deviation.yaml
+- component_path: components/variance.yaml
