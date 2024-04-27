@@ -3,3 +3,4 @@ label: rating
 components:
 - component_path: components/deviation.yaml
 - component_path: components/variance.yaml
+- component_path: components/autocorrelation.yaml
