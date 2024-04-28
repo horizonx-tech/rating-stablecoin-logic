@@ -1,12 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/horizonx-tech/chainsight-cli/main/resources/schema/algorithm_lens.json
 version: v1
 metadata:
-  label: Sample Algorithm Lens
+  label: DEX Liquidity
   type: algorithm_lens
   description: ''
   tags:
   - Ethereum
-  - Account
+  - Stablecoin Ratings
 datasource:
   methods:
   - id: sample_snapshot_indexer_icp
