@@ -6,3 +6,4 @@ components:
 - component_path: components/autocorrelation.yaml
 - component_path: components/dexliquidity.yaml
 - component_path: components/activeaddress.yaml
+- component_path: components/txvolume.yaml

@@ -1,5 +1,5 @@
 [workspace]
-members = ["canisters/deviation", "logics/deviation", "canisters/variance", "logics/variance", "canisters/autocorrelation", "logics/autocorrelation", "canisters/dexliquidity", "logics/dexliquidity", "canisters/activeaddress", "logics/activeaddress", "bindings/*", "accessors/*"]
+members = ["canisters/deviation", "logics/deviation", "canisters/variance", "logics/variance", "canisters/autocorrelation", "logics/autocorrelation", "canisters/dexliquidity", "logics/dexliquidity", "canisters/activeaddress", "logics/activeaddress", "canisters/txvolume", "logics/txvolume", "bindings/*", "accessors/*"]
 
 [workspace.package]
 version = "0.1.0"

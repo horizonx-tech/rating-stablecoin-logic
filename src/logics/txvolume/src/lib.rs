@@ -1,4 +1,4 @@
-use activeaddress_accessors::*;
+use txvolume_accessors::*;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
     pub dummy: u64,
@@ -10,7 +10,7 @@ pub async fn calculate(targets: Vec<String>) -> LensValue {
     todo!()
 }
 
-fn average_address(data: &[f64]) -> f64 {
+fn average_volume(data: &[f64]) -> f64 {
     let n = data.len() as f64;
     if n == 0.0 {
         return 0.0;
@@ -20,25 +20,26 @@ fn average_address(data: &[f64]) -> f64 {
     sum / n
 }
 
-fn log10_address(data: &[f64]) -> f64 {
-    let average = average_address(data);
+fn log10_volume(data: &[f64]) -> f64 {
+    let average = average_volume(data);
     average.log10()
 }
 
-fn max_log10_address(datasets: &[Vec<f64>]) -> f64 {
-    datasets.iter()
-        .map(|data| log10_address(data))
+fn max_log10_volume(datasets: &[Vec<f64>]) -> f64 {
+    datasets
+        .iter()
+        .map(|data| log10_volume(data))
         .fold(0.0, f64::max)
 }
 
-fn score_address(data: &[f64], datasets: &[Vec<f64>]) -> f64 {
-    let log10_address = log10_address(data);
-    let max_log10_address = max_log10_address(datasets);
+fn score_volume(data: &[f64], datasets: &[Vec<f64>]) -> f64 {
+    let log10_volume = log10_volume(data);
+    let max_log10_volume = max_log10_volume(datasets);
 
-    if max_log10_address == 0.0 {
+    if max_log10_volume == 0.0 {
         0.0
     } else {
-        log10_address / max_log10_address
+        log10_volume / max_log10_volume
     }
 }
 
@@ -46,16 +47,44 @@ fn score_address(data: &[f64], datasets: &[Vec<f64>]) -> f64 {
 mod tests {
     use super::*;
 
-    const usdc: [f64; 6] = [20756.0, 39127.0, 20996.0, 20644.0, 21952.0, 24694.0];
-    const usdt: [f64; 6] = [55211.0, 96979.0, 50291.0, 51362.0, 49945.0, 51539.0];
-    const dai: [f64; 6] = [1615.0, 2625.0, 1476.0, 1849.0, 2057.0, 2399.0];
-    const fdusd: [f64; 6] = [26.0, 48.0, 31.0, 76.0, 31.0, 22.0];
+    const usdc: [f64; 6] = [
+        11297494841.0,
+        16662147803.0,
+        7903871311.0,
+        14753101769.0,
+        7527660368.0,
+        9817033672.0,
+    ];
+    const usdt: [f64; 6] = [
+        10595078509.0,
+        12406512875.0,
+        5989646841.0,
+        9102603766.0,
+        5563919565.0,
+        9521087992.0,
+    ];
+    const dai: [f64; 6] = [
+        11869832525.0,
+        8445518282.0,
+        4672267966.0,
+        7374460791.0,
+        10147684330.0,
+        19339245814.0,
+    ];
+    const fdusd: [f64; 6] = [
+        919638661.0,
+        469195441.0,
+        210240247.0,
+        2153513563.0,
+        386958583.0,
+        544515.0,
+    ];
 
     #[test]
     fn test_empty_slice() {
         let data = [];
         let expected = 0.0;
-        let result = average_address(&data);
+        let result = average_volume(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
@@ -63,39 +92,39 @@ mod tests {
     fn test_all_elements_same() {
         let data = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
         let expected = 1.0;
-        let result = average_address(&data);
+        let result = average_volume(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_usdc_6days() {
         let data = usdc;
-        let expected = 24694.833333333332;
-        let result = average_address(&data);
+        let expected = 11326884960.666666;
+        let result = average_volume(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_usdt_6days() {
         let data = usdt;
-        let expected = 59221.166666666664;
-        let result = average_address(&data);
+        let expected = 8863141591.333334;
+        let result = average_volume(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_usdc_log10() {
         let data = usdc;
-        let expected = 4.392606099432254;
-        let result = log10_address(&data);
+        let expected = 10.054110489704426;
+        let result = log10_volume(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_usdt_log10() {
         let data = usdt;
-        let expected = 4.772476958809861;
-        let result = log10_address(&data);
+        let expected = 9.947587687343765;
+        let result = log10_volume(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
@@ -107,8 +136,8 @@ mod tests {
             dai.to_vec(),
             fdusd.to_vec(),
         ];
-        let expected = 0.9204038358579446;
-        let result = score_address(&usdc, &datasets);
+        let expected = 1.0;
+        let result = score_volume(&usdc, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
@@ -120,8 +149,8 @@ mod tests {
             dai.to_vec(),
             fdusd.to_vec(),
         ];
-        let expected = 1.0;
-        let result = score_address(&usdt, &datasets);
+        let expected = 0.9894050495596063;
+        let result = score_volume(&usdt, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
@@ -133,8 +162,8 @@ mod tests {
             dai.to_vec(),
             fdusd.to_vec(),
         ];
-        let expected = 0.6918397669104942;
-        let result = score_address(&dai, &datasets);
+        let expected = 0.9959291287089729;
+        let result = score_volume(&dai, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
@@ -146,9 +175,8 @@ mod tests {
             dai.to_vec(),
             fdusd.to_vec(),
         ];
-        let expected = 0.33338340253051146;
-        let result = score_address(&fdusd, &datasets);
+        let expected = 0.8791288544937829;
+        let result = score_volume(&fdusd, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 }
-
