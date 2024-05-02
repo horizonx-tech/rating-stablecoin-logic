@@ -1,4 +1,4 @@
-use candid::{CandidType, Principal};
+use candid::{CandidType, Decode, Encode, Principal};
 use ic_cdk::api::call::CallResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -12,7 +12,7 @@ impl BulkSnapshotIndexerHttps {
     }
     pub async fn get_value(&self, id: String) -> Result<Option<Snapshot>, String> {
         let result: Result<Option<Snapshot>, String> =
-            raw_call_target(self.principal, "get_value", id).await;
+            raw_call_target(self.principal, "get_value", id.as_str()).await;
         result
     }
     pub async fn query(
@@ -25,7 +25,7 @@ impl BulkSnapshotIndexerHttps {
             from_timestamp: from,
             to_timestamp: to,
         };
-        raw_call_target(self.principal, "query_between", (id, opts)).await
+        raw_call_target(self.principal, "query_between", (id.as_str(), opts)).await
     }
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -38,10 +38,6 @@ pub struct Snapshot {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 struct SnapshotValue {
     raw: Vec<u8>,
-}
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-struct SnapshotIds {
-    ids: Vec<SnapshotId>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -77,10 +73,11 @@ async fn raw_call_target<T: CandidType + DeserializeOwned, A: CandidType>(
     method_name: &str,
     args: A,
 ) -> Result<T, String> {
-    let result: CallResult<(T,)> = ic_cdk::api::call::call(target, method_name, (args,)).await;
+    let result: Result<Vec<u8>, (ic_cdk::api::call::RejectionCode, String)> =
+        ic_cdk::api::call::call_raw(target, method_name, Encode!(&args).unwrap(), 0).await;
 
     if result.is_err() {
         return Err(result.err().unwrap().1);
     }
-    Ok(result.unwrap().0)
+    Decode!(result.unwrap().as_slice(), T).map_err(|e| e.to_string())
 }
