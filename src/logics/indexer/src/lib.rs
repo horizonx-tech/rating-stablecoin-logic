@@ -18,7 +18,7 @@ impl BulkSnapshotIndexerHttps {
             from_timestamp: Some(from),
             to_timestamp: Some(to),
         };
-        raw_call_target(self.principal, "query", (id, opts)).await?
+        raw_call_target(self.principal, "query_between", (id, opts)).await?
     }
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]

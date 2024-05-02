@@ -14,7 +14,7 @@ pub struct CalculateInput {
     pub value_all_assets: Vec<Vec<f64>>,
 }
 
-async fn calculate(target: Principal, args: Args) -> Result<CalculateInput, String> {
+async fn call(target: Principal, args: Args) -> Result<CalculateInput, String> {
     let indexer = BulkSnapshotIndexerHttps::new(target);
     let value = indexer.query(args.id, args.from, args.to).await?;
     let values = value
@@ -40,6 +40,6 @@ pub async fn calc<T: From<CalculateInput>>(target: Principal, args: Args) -> Res
 where
     T: From<CalculateInput>,
 {
-    let v = calculate(target, args).await?;
+    let v = call(target, args).await?;
     Ok(T::from(v))
 }

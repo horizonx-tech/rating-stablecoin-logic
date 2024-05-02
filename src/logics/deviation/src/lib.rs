@@ -24,7 +24,7 @@ pub struct CalculateArgs {
     from: i64,
     to: i64,
 }
-pub async fn calculate(targets: Vec<String>, args: Args) -> LensValue {
+pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
     let target = Principal::from_str(&targets[0]).unwrap();
     calc(
         target,
