@@ -1,5 +1,5 @@
 use candid::{CandidType, Principal};
-use indexer::BulkSnapshotIndexerHttps;
+use indexer::{BulkSnapshotIndexerHttps, Snapshot};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, CandidType, Deserialize, Serialize, Default)]
@@ -14,12 +14,16 @@ pub struct CalculateInput {
     pub value_all_assets: Vec<Vec<f64>>,
 }
 
-async fn call(target: Principal, args: Args) -> Result<CalculateInput, String> {
+pub async fn call_with_transform(
+    target: Principal,
+    args: Args,
+    transform: impl Fn(Snapshot) -> f64,
+) -> Result<CalculateInput, String> {
     let indexer = BulkSnapshotIndexerHttps::new(target);
     let value = indexer.query(args.id, args.from, args.to).await?;
     let values = value
         .iter()
-        .map(|x| x.value().unwrap())
+        .map(|x| transform(x.clone()))
         .collect::<Vec<f64>>();
     let mut value_all_assets = vec![];
     for id in args.ids {
@@ -34,6 +38,10 @@ async fn call(target: Principal, args: Args) -> Result<CalculateInput, String> {
         values,
         value_all_assets,
     })
+}
+
+async fn call(target: Principal, args: Args) -> Result<CalculateInput, String> {
+    call_with_transform(target, args, |x| x.value().unwrap()).await
 }
 
 pub async fn calc<T: From<CalculateInput>>(target: Principal, args: Args) -> Result<T, String>

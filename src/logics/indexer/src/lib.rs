@@ -67,6 +67,15 @@ impl Snapshot {
         }
         Some(value_f64.unwrap().v)
     }
+    pub fn value_from_string(&self) -> Option<f64> {
+        let value_string: Result<DexValue, bincode::Error> =
+            bincode::deserialize(&self.value.raw.as_slice());
+        if value_string.is_err() {
+            ic_cdk::println!("Failed to deserialize value: {:?}", value_string.err());
+            return None;
+        }
+        Some(value_string.unwrap().v.parse().unwrap())
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -78,7 +87,10 @@ pub struct SnapshotId {
 struct Value {
     v: f64,
 }
-
+#[derive(Deserialize, Serialize)]
+struct DexValue {
+    v: String,
+}
 async fn raw_call_target<T: CandidType + DeserializeOwned>(
     target: Principal,
     method_name: &str,

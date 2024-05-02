@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use candid::Principal;
-use common::{calc, Args, CalculateInput};
+use common::{call_with_transform, Args, CalculateInput};
 pub type CalculateArgs = Args;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
@@ -18,7 +18,11 @@ impl From<CalculateInput> for LensValue {
 
 pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
     let target = Principal::from_str(&targets[0]).unwrap();
-    calc(target, args).await.unwrap()
+
+    let v = call_with_transform(target, args, |f| f.value_from_string().unwrap())
+        .await
+        .unwrap();
+    LensValue::from(v)
 }
 
 fn average_liquidity(data: &[f64]) -> f64 {
