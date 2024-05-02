@@ -743,6 +743,7 @@ dependencies = [
  "ic-solidity-bindgen",
  "ic-stable-structures",
  "ic-web3-rs",
+ "indexer",
  "serde",
  "serde_bytes",
  "serde_json",

@@ -24,3 +24,4 @@ chainsight-cdk.workspace = true
 
 deviation_bindings = { path = "../../bindings/deviation_bindings" }
 deviation_accessors = { path = "../../accessors/deviation_accessors" }
+indexer = { path = "../indexer" }

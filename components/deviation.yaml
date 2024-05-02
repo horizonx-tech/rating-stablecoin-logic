@@ -12,4 +12,5 @@ datasource:
     - id: bulk_snapshot_indexer_https_push
       identifier: "query_between : (text, QueryOptions) -> (vec Snapshot)"
       candid_file_path: ./interfaces/bulk_snapshot_indexer_https_push.did
+with_args: true
 cycles: null
