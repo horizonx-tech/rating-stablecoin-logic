@@ -4,21 +4,16 @@ pub struct LensValue {
     pub dummy: u64,
 }
 pub async fn calculate(targets: Vec<String>) -> LensValue {
-    let _result =
-        get_get_last_snapshot_in_sample_snapshot_indexer_icp(targets.get(0usize).unwrap().clone())
-            .await;
     todo!()
 }
 
 fn average_deviation(data: &[f64]) -> f64 {
     let n = data.len() as f64;
     if n == 0.0 {
-        return 0.0
+        return 0.0;
     }
 
-    let deviation = data.iter()
-        .map(|&x| (x-1.0).abs())
-        .sum::<f64>();
+    let deviation = data.iter().map(|&x| (x - 1.0).abs()).sum::<f64>();
     deviation / n
 }
 
@@ -32,7 +27,8 @@ fn negative_log10_deviation(data: &[f64]) -> f64 {
 }
 
 fn max_negative_log10_deviation(datasets: &[Vec<f64>]) -> f64 {
-    datasets.iter()
+    datasets
+        .iter()
         .map(|data| negative_log10_deviation(data))
         .fold(0.0, f64::max)
 }
@@ -48,15 +44,22 @@ fn score_deviation(data: &[f64], datasets: &[Vec<f64>]) -> f64 {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const usdc: [f64; 7] = [0.999482, 1.001000, 0.999570, 1.001000, 1.001000, 0.998959, 1.000000];
-    const usdt: [f64; 7] = [1.000000, 0.999738, 1.000000, 1.000000, 1.000000, 1.000000, 1.001000];
-    const dai: [f64; 7] = [0.998615, 1.000000, 1.000000, 0.999913, 1.000000, 1.002000, 1.000000];
-    const fdusd: [f64; 7] = [0.997341, 1.000000, 1.000000, 1.002000, 1.005000, 0.998214, 1.001000];
+    const usdc: [f64; 7] = [
+        0.999482, 1.001000, 0.999570, 1.001000, 1.001000, 0.998959, 1.000000,
+    ];
+    const usdt: [f64; 7] = [
+        1.000000, 0.999738, 1.000000, 1.000000, 1.000000, 1.000000, 1.001000,
+    ];
+    const dai: [f64; 7] = [
+        0.998615, 1.000000, 1.000000, 0.999913, 1.000000, 1.002000, 1.000000,
+    ];
+    const fdusd: [f64; 7] = [
+        0.997341, 1.000000, 1.000000, 1.002000, 1.005000, 0.998214, 1.001000,
+    ];
 
     #[test]
     fn test_empty_slice() {
@@ -72,7 +75,6 @@ mod tests {
         let expected = 0.0;
         let result = average_deviation(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
-
     }
 
     #[test]
@@ -109,12 +111,7 @@ mod tests {
 
     #[test]
     fn test_score_usdc() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.8405587657505329;
         let result = score_deviation(&usdc, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -122,12 +119,7 @@ mod tests {
 
     #[test]
     fn test_score_usdt() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 1.0;
         let result = score_deviation(&usdt, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -135,12 +127,7 @@ mod tests {
 
     #[test]
     fn test_score_dai() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.8826079539870174;
         let result = score_deviation(&dai, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -148,12 +135,7 @@ mod tests {
 
     #[test]
     fn test_score_fdusd() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.734528505276825;
         let result = score_deviation(&fdusd, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);

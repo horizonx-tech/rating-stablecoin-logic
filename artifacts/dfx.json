@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "canisters": {
+    "deviation": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./deviation.did",
+      "wasm": "./deviation.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
+    "variance": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./variance.did",
+      "wasm": "./variance.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
+    "autocorrelation": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./autocorrelation.did",
+      "wasm": "./autocorrelation.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
+    "dexliquidity": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./dexliquidity.did",
+      "wasm": "./dexliquidity.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
+    "activeaddress": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./activeaddress.did",
+      "wasm": "./activeaddress.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
+    "txvolume": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./txvolume.did",
+      "wasm": "./txvolume.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "",
+      "args": ""
+    }
+  },
+  "output_env_file": ".env"
+}
