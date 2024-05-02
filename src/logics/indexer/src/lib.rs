@@ -11,32 +11,43 @@ impl BulkSnapshotIndexerHttps {
         Self { principal }
     }
     pub async fn get_value(&self, id: String) -> Result<Option<Snapshot>, String> {
-        raw_call_target(self.principal, "get_value", id).await?
+        let result: Result<Option<Snapshot>, String> =
+            raw_call_target(self.principal, "get_value", id).await;
+        result
     }
-    pub async fn query(&self, id: String, from: i64, to: i64) -> Result<Vec<Snapshot>, String> {
+    pub async fn query(
+        &self,
+        id: String,
+        from: Option<i64>,
+        to: Option<i64>,
+    ) -> Result<Vec<Snapshot>, String> {
         let opts = QueryOptions {
-            from_timestamp: Some(from),
-            to_timestamp: Some(to),
+            from_timestamp: from,
+            to_timestamp: to,
         };
-        raw_call_target(self.principal, "query_between", (id, opts)).await?
+        raw_call_target(self.principal, "query_between", (id, opts)).await
     }
 }
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct Snapshot {
+    id: SnapshotId,
+    value: SnapshotValue,
+    timestamp: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+struct SnapshotValue {
+    raw: Vec<u8>,
+}
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+struct SnapshotIds {
+    ids: Vec<SnapshotId>,
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 struct QueryOptions {
     from_timestamp: Option<i64>,
     to_timestamp: Option<i64>,
-}
-
-#[derive(CandidType, Serialize, Clone, Debug, Deserialize)]
-pub struct SnapshotValue {
-    raw: Vec<u8>,
-}
-
-#[derive(CandidType, Serialize, Clone, Debug, Deserialize)]
-pub struct Snapshot {
-    pub id: SnapshotId,
-    value: SnapshotValue,
-    pub timestamp: u64,
 }
 
 impl Snapshot {
@@ -69,8 +80,7 @@ async fn raw_call_target<T: CandidType + DeserializeOwned, A: CandidType>(
     let result: CallResult<(T,)> = ic_cdk::api::call::call(target, method_name, (args,)).await;
 
     if result.is_err() {
-        ic_cdk::println!("Failed to call {}: {:?}", target, result.err());
-        return Err("Failed to call".to_string());
+        return Err(result.err().unwrap().1);
     }
     Ok(result.unwrap().0)
 }

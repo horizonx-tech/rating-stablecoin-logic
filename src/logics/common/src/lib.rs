@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct Args {
     pub id: String,
     pub ids: Vec<String>,
-    pub from: i64,
-    pub to: i64,
+    pub from: Option<i64>,
+    pub to: Option<i64>,
 }
 pub struct CalculateInput {
     pub values: Vec<f64>,
