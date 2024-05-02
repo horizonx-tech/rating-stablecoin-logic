@@ -3,13 +3,14 @@ version: v1
 metadata:
   label: Auto Correlation
   type: algorithm_lens
-  description: ''
+  description: ""
   tags:
-  - Ethereum
-  - Stablecoin Ratings
+    - Ethereum
+    - Stablecoin Ratings
 datasource:
   methods:
-  - id: sample_snapshot_indexer_icp
-    identifier: 'get_last_snapshot : () -> (record { value : text; timestamp : nat64 })'
-    candid_file_path: null
+    - id: sample_snapshot_indexer_icp
+      identifier: "get_last_snapshot : () -> (record { value : text; timestamp : nat64 })"
+      candid_file_path: null
+with_args: true
 cycles: null

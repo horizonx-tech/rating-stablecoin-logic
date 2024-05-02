@@ -24,3 +24,4 @@ chainsight-cdk.workspace = true
 
 autocorrelation_bindings = { path = "../../bindings/autocorrelation_bindings" }
 autocorrelation_accessors = { path = "../../accessors/autocorrelation_accessors" }
+common = { path = "../common" }
