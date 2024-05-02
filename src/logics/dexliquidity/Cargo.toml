@@ -24,4 +24,4 @@ chainsight-cdk.workspace = true
 
 dexliquidity_bindings = { path = "../../bindings/dexliquidity_bindings" }
 dexliquidity_accessors = { path = "../../accessors/dexliquidity_accessors" }
-indexer = { path = "../indexer" }
+common = { path = "../common" }

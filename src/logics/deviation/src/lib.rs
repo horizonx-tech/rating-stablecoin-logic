@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use candid::{CandidType, Principal};
+use candid::Principal;
 use common::{calc, Args, CalculateInput};
-use serde::{Deserialize, Serialize};
+pub type CalculateArgs = Args;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
     pub value: f64,
@@ -17,26 +17,9 @@ impl From<CalculateInput> for LensValue {
     }
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize, Serialize, Default)]
-pub struct CalculateArgs {
-    id: String,
-    ids: Vec<String>,
-    from: i64,
-    to: i64,
-}
 pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
     let target = Principal::from_str(&targets[0]).unwrap();
-    calc(
-        target,
-        Args {
-            from: args.from,
-            to: args.to,
-            id: args.id,
-            ids: args.ids,
-        },
-    )
-    .await
-    .unwrap()
+    calc(target, args).await.unwrap()
 }
 
 fn average_deviation(data: &[f64]) -> f64 {
