@@ -1,5 +1,5 @@
-use candid::{CandidType, Decode, Encode, Principal};
-use ic_cdk::api::call::CallResult;
+use candid::{ser::IDLBuilder, CandidType, Decode, Encode, Principal};
+
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[derive(Clone, Debug, CandidType, Deserialize, Serialize)]
@@ -11,8 +11,12 @@ impl BulkSnapshotIndexerHttps {
         Self { principal }
     }
     pub async fn get_value(&self, id: String) -> Result<Option<Snapshot>, String> {
-        let result: Result<Option<Snapshot>, String> =
-            raw_call_target(self.principal, "get_value", id.as_str()).await;
+        let result: Result<Option<Snapshot>, String> = raw_call_target(
+            self.principal,
+            "get_value",
+            Encode!(&id).map_err(|e| e.to_string())?,
+        )
+        .await;
         result
     }
     pub async fn query(
@@ -25,7 +29,14 @@ impl BulkSnapshotIndexerHttps {
             from_timestamp: from,
             to_timestamp: to,
         };
-        raw_call_target(self.principal, "query_between", (id.as_str(), opts)).await
+        let args: Vec<u8> = IDLBuilder::new()
+            .arg(&id)
+            .map_err(|e| e.to_string())?
+            .arg(&opts)
+            .map_err(|e| e.to_string())?
+            .serialize_to_vec()
+            .map_err(|e| e.to_string())?;
+        raw_call_target(self.principal, "query_between", args).await
     }
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -68,16 +79,17 @@ struct Value {
     v: f64,
 }
 
-async fn raw_call_target<T: CandidType + DeserializeOwned, A: CandidType>(
+async fn raw_call_target<T: CandidType + DeserializeOwned>(
     target: Principal,
     method_name: &str,
-    args: A,
+    args: Vec<u8>,
 ) -> Result<T, String> {
     let result: Result<Vec<u8>, (ic_cdk::api::call::RejectionCode, String)> =
-        ic_cdk::api::call::call_raw(target, method_name, Encode!(&args).unwrap(), 0).await;
-
-    if result.is_err() {
-        return Err(result.err().unwrap().1);
+        ic_cdk::api::call::call_raw(target, method_name, args, 0).await;
+    match result {
+        Ok(bytes) => {
+            Decode!(bytes.as_slice(), T).map_err(|e| format!("Error decoding response: {:?}", e))
+        }
+        Err((code, msg)) => Err(format!("Error: {:?}, {:?}", code, msg)),
     }
-    Decode!(result.unwrap().as_slice(), T).map_err(|e| e.to_string())
 }
