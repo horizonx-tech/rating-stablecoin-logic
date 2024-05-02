@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/horizonx-tech/chainsight-cli/main/resources/schema/algorithm_lens.json
+version: v1
+metadata:
+  label: Rating
+  type: algorithm_lens
+  description: ""
+  tags:
+    - Ethereum
+    - Stablecoin Ratings
+datasource:
+  methods:
+    - id: bulk_snapshot_indexer_https_push
+      identifier: "query_between : (text, QueryOptions) -> (vec Snapshot)"
+      candid_file_path: ./interfaces/bulk_snapshot_indexer_https_push.did
+with_args: true
+cycles: null

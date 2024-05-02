@@ -7,3 +7,4 @@ components:
 - component_path: components/dexliquidity.yaml
 - component_path: components/activeaddress.yaml
 - component_path: components/txvolume.yaml
+- component_path: components/rating.yaml
