@@ -1,5 +1,14 @@
 {
+  "autocorrelation": {
+    "ic": "moedy-iqaaa-aaaao-a3mtq-cai"
+  },
   "deviation": {
     "ic": "magoq-taaaa-aaaao-a3msq-cai"
+  },
+  "dexliquidity": {
+    "ic": "ndkhw-hyaaa-aaaao-a3mua-cai"
+  },
+  "variance": {
+    "ic": "nelbc-kaaaa-aaaao-a3muq-cai"
   }
 }

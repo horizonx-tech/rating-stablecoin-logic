@@ -30,7 +30,7 @@ pub async fn call_with_transform(
         let value = indexer.query(id, args.from, args.to).await?;
         let values = value
             .iter()
-            .map(|x| x.value().unwrap())
+            .map(|x| transform(x.clone()))
             .collect::<Vec<f64>>();
         value_all_assets.push(values);
     }
