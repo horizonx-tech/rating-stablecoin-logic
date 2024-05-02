@@ -549,6 +549,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "candid 0.9.11",
+ "chainsight-cdk",
+ "chainsight-cdk-macros",
+ "hex",
+ "ic-cdk 0.11.3",
+ "ic-cdk-macros 0.8.1",
+ "ic-cdk-timers",
+ "ic-solidity-bindgen",
+ "ic-stable-structures",
+ "ic-web3-rs",
+ "indexer",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+]
+
+[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -734,6 +754,7 @@ dependencies = [
  "candid 0.9.11",
  "chainsight-cdk",
  "chainsight-cdk-macros",
+ "common",
  "deviation_accessors",
  "deviation_bindings",
  "hex",
@@ -743,7 +764,6 @@ dependencies = [
  "ic-solidity-bindgen",
  "ic-stable-structures",
  "ic-web3-rs",
- "indexer",
  "serde",
  "serde_bytes",
  "serde_json",

@@ -1,5 +1,5 @@
 [package]
-name = "deviation"
+name = "common"
 version.workspace = true
 edition.workspace = true
 
@@ -21,7 +21,4 @@ ic-web3-rs.workspace = true
 ic-solidity-bindgen.workspace = true
 chainsight-cdk-macros.workspace = true
 chainsight-cdk.workspace = true
-
-deviation_bindings = { path = "../../bindings/deviation_bindings" }
-deviation_accessors = { path = "../../accessors/deviation_accessors" }
-common = { path = "../common" }
+indexer = { path = "../indexer" }

@@ -1,12 +1,22 @@
 use std::str::FromStr;
 
 use candid::{CandidType, Principal};
-use indexer::*;
+use common::{calc, Args, CalculateInput};
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
     pub value: f64,
 }
+
+impl From<CalculateInput> for LensValue {
+    fn from(input: CalculateInput) -> Self {
+        let value = input.values;
+        let value_all_assets = input.value_all_assets;
+        let score = score_deviation(&value, &value_all_assets);
+        LensValue { value: score }
+    }
+}
+
 #[derive(Clone, Debug, CandidType, Deserialize, Serialize, Default)]
 pub struct CalculateArgs {
     id: String,
@@ -14,26 +24,19 @@ pub struct CalculateArgs {
     from: i64,
     to: i64,
 }
-pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
-    let indexer =
-        BulkSnapshotIndexerHttps::new(Principal::from_str(targets.get(0).unwrap()).unwrap());
-    let value = indexer.query(args.id, args.from, args.to).await.unwrap();
-    let values = value
-        .iter()
-        .map(|x| x.value().unwrap())
-        .collect::<Vec<f64>>();
-    let mut value_all_assets = vec![];
-    for id in args.ids {
-        let value = indexer.query(id, args.from, args.to).await.unwrap();
-        let values = value
-            .iter()
-            .map(|x| x.value().unwrap())
-            .collect::<Vec<f64>>();
-        value_all_assets.push(values);
-    }
-    LensValue {
-        value: score_deviation(&values, &value_all_assets),
-    }
+pub async fn calculate(targets: Vec<String>, args: Args) -> LensValue {
+    let target = Principal::from_str(&targets[0]).unwrap();
+    calc(
+        target,
+        Args {
+            from: args.from,
+            to: args.to,
+            id: args.id,
+            ids: args.ids,
+        },
+    )
+    .await
+    .unwrap()
 }
 
 fn average_deviation(data: &[f64]) -> f64 {
