@@ -24,3 +24,4 @@ chainsight-cdk.workspace = true
 
 variance_bindings = { path = "../../bindings/variance_bindings" }
 variance_accessors = { path = "../../accessors/variance_accessors" }
+common = { path = "../common" }

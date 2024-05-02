@@ -2657,6 +2657,7 @@ dependencies = [
  "candid 0.9.11",
  "chainsight-cdk",
  "chainsight-cdk-macros",
+ "common",
  "hex",
  "ic-cdk 0.11.3",
  "ic-cdk-macros 0.8.1",
