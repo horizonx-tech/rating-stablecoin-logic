@@ -1,5 +1,5 @@
 [package]
-name = "rating"
+name = "rating_indexer"
 version.workspace = true
 edition.workspace = true
 
@@ -22,5 +22,5 @@ ic-solidity-bindgen.workspace = true
 chainsight-cdk-macros.workspace = true
 chainsight-cdk.workspace = true
 
-rating_bindings = { path = "../../bindings/rating_bindings" }
-rating_accessors = { path = "../../accessors/rating_accessors" }
+rating_indexer_bindings = { path = "../../bindings/rating_indexer_bindings" }
+

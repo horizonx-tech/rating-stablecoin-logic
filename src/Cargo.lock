@@ -2137,7 +2137,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rating"
+name = "rating_indexer"
 version = "0.1.0"
 dependencies = [
  "candid 0.9.11",
@@ -2150,34 +2150,14 @@ dependencies = [
  "ic-solidity-bindgen",
  "ic-stable-structures",
  "ic-web3-rs",
- "rating_accessors",
- "rating_bindings",
+ "rating_indexer_bindings",
  "serde",
  "serde_bytes",
  "serde_json",
 ]
 
 [[package]]
-name = "rating_accessors"
-version = "0.1.0"
-dependencies = [
- "candid 0.9.11",
- "chainsight-cdk",
- "chainsight-cdk-macros",
- "hex",
- "ic-cdk 0.11.3",
- "ic-cdk-macros 0.8.1",
- "ic-cdk-timers",
- "ic-solidity-bindgen",
- "ic-stable-structures",
- "ic-web3-rs",
- "rating_bindings",
- "serde",
- "serde_bytes",
-]
-
-[[package]]
-name = "rating_bindings"
+name = "rating_indexer_bindings"
 version = "0.1.0"
 dependencies = [
  "candid 0.9.11",
@@ -2190,7 +2170,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rating_canister"
+name = "rating_indexer_canister"
 version = "0.1.0"
 dependencies = [
  "candid 0.9.11",
@@ -2204,10 +2184,11 @@ dependencies = [
  "ic-solidity-bindgen",
  "ic-stable-structures",
  "ic-web3-rs",
- "rating",
- "rating_bindings",
+ "rating_indexer",
+ "rating_indexer_bindings",
  "serde",
  "serde_bytes",
+ "ulid_lib",
 ]
 
 [[package]]
@@ -2684,6 +2665,11 @@ dependencies = [
  "hex",
  "static_assertions",
 ]
+
+[[package]]
+name = "ulid_lib"
+version = "0.0.1"
+source = "git+https://github.com/horizonx-tech/ulid-lib.git#4587a1c752b6b2e566009a65988a6d890753fe1c"
 
 [[package]]
 name = "unicode-ident"

@@ -1,4 +1,3 @@
-use rating_accessors::*;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
     pub dummy: u64,
@@ -8,11 +7,6 @@ pub struct CalculateArgs {
     pub dummy: u64,
 }
 pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
-    let _result = get_query_between_in_bulk_snapshot_indexer_https_push(
-        targets.get(0usize).unwrap().clone(),
-        todo!("Arguments to be used in this call"),
-    )
-    .await;
     todo!()
 }
 
