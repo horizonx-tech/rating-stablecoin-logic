@@ -1,10 +1,14 @@
 src/__interfaces
 src/accessors
 src/bindings
-src/canisters
+/src/canisters/activeaddress
+/src/canisters/autocorrelation
+/src/canisters/deviation
+/src/canisters/dexliquidity
+/src/canisters/txvolume
+/src/canisters/variance
 src/target
 /artifacts/*
 !/artifacts/dfx.json
 !/artifacts/canister_ids.json
 .env
-!src/canisters/rating_indexer

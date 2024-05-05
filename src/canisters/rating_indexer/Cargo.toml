@@ -1,0 +1,28 @@
+[package]
+name = "rating_indexer_canister"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+candid.workspace = true
+ic-cdk.workspace = true
+ic-cdk-macros.workspace = true
+ic-cdk-timers.workspace = true
+ic-stable-structures.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+hex.workspace = true
+
+ic-web3-rs.workspace = true
+ic-solidity-bindgen.workspace = true
+chainsight-cdk-macros.workspace = true
+chainsight-cdk.workspace = true
+
+ciborium = "0.2.1"
+
+rating_indexer = { path = "../../logics/rating_indexer" }
+rating_indexer_bindings = { path = "../../bindings/rating_indexer_bindings" }
+ulid_lib = { git = "https://github.com/horizonx-tech/ulid-lib.git" }

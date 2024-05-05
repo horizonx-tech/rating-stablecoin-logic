@@ -5,15 +5,15 @@ impl ScoreCalculator {
         ScoreCalculator
     }
 
-    pub fn calculate(&self, scores: Vec<f64>) -> f64 {
+    pub fn calculate(&self, scores: Vec<(f64, Option<f64>)>) -> f64 {
         rating(scores)
     }
 }
-fn rating(scores: Vec<f64>) -> f64 {
+fn rating(scores: Vec<(f64, Option<f64>)>) -> f64 {
     let size = scores.len() as f64;
     scores
         .iter()
-        .map(|s| s.powf(1.0 / size))
+        .map(|s| s.0.powf(s.1.unwrap_or(1.0) / size))
         .reduce(|a, b| a * b)
         .unwrap_or(0.0)
 }
@@ -30,35 +30,70 @@ mod tests {
     #[test]
     fn test_empty_slice() {
         let expected = 0.0;
-        let result = rating(vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+        let result = rating(vec![
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+        ]);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_all_elements_same() {
         let expected = 1.0;
-        let result = rating(vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0]);
+        let result = rating(vec![
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+            (0.0, None),
+        ]);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_usdc_rating() {
         let expected = 4.017856419662701;
-        let result = rating(vec![usdc[0], usdc[1], usdc[2], usdc[3], usdc[4], usdc[5]]);
+        let result = rating(vec![
+            (usdc[0], None),
+            (usdc[1], None),
+            (usdc[2], None),
+            (usdc[3], None),
+            (usdc[4], None),
+            (usdc[5], None),
+        ]);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_usdt_rating() {
         let expected = 4.8653063858730174;
-        let result = rating(vec![usdt[0], usdt[1], usdt[2], usdt[3], usdt[4], usdt[5]]);
+        let result = rating(vec![
+            (usdt[0], None),
+            (usdt[1], None),
+            (usdt[2], None),
+            (usdt[3], None),
+            (usdt[4], None),
+            (usdt[5], None),
+        ]);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
     #[test]
     fn test_dai_rating() {
         let expected = 4.3798898528148325;
-        let result = rating(vec![dai[0], dai[1], dai[2], dai[3], dai[4], dai[5]]);
+        let result = rating(vec![
+            (dai[0], None),
+            (dai[1], None),
+            (dai[2], None),
+            (dai[3], None),
+            (dai[4], None),
+            (dai[5], None),
+        ]);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 
@@ -66,7 +101,12 @@ mod tests {
     fn test_fdusd_rating() {
         let expected = 3.4510228498125803;
         let result = rating(vec![
-            fdusd[0], fdusd[1], fdusd[2], fdusd[3], fdusd[4], fdusd[5],
+            (fdusd[0], None),
+            (fdusd[1], None),
+            (fdusd[2], None),
+            (fdusd[3], None),
+            (fdusd[4], None),
+            (fdusd[5], None),
         ]);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
