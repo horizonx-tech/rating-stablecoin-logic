@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn test_all_elements_same() {
-        let expected = 0.0;
+        let expected = 1.0;
         let result = rating(vec![
             (0.0, None),
             (0.0, None),

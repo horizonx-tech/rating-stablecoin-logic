@@ -24,3 +24,4 @@ chainsight-cdk.workspace = true
 
 txvolume_bindings = { path = "../../bindings/txvolume_bindings" }
 txvolume_accessors = { path = "../../accessors/txvolume_accessors" }
+common = { path = "../common" }

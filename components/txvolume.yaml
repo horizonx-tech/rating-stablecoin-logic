@@ -3,13 +3,14 @@ version: v1
 metadata:
   label: TX Volume
   type: algorithm_lens
-  description: ''
+  description: ""
   tags:
-  - Ethereum
-  - Stablecoin Ratings
+    - Ethereum
+    - Stablecoin Ratings
 datasource:
   methods:
-  - id: sample_snapshot_indexer_icp
-    identifier: 'get_last_snapshot : () -> (record { value : text; timestamp : nat64 })'
-    candid_file_path: null
+    - id: bulk_snapshot_indexer_https_push
+      identifier: "query_between : (text, QueryOptions) -> (vec Snapshot)"
+      candid_file_path: ./interfaces/bulk_snapshot_indexer_https_push.did
+with_args: true
 cycles: null

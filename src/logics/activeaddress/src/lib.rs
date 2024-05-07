@@ -1,15 +1,31 @@
+use std::str::FromStr;
+pub type CalculateArgs = Args;
 use activeaddress_accessors::*;
+use candid::Principal;
+use common::call_with_transform;
+use common::Args;
+use common::CalculateInput;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
-    pub dummy: u64,
+    pub value: f64,
 }
-pub async fn calculate(targets: Vec<String>) -> LensValue {
-    let _result =
-        get_get_last_snapshot_in_sample_snapshot_indexer_icp(targets.get(0usize).unwrap().clone())
-            .await;
-    todo!()
+impl From<CalculateInput> for LensValue {
+    fn from(input: CalculateInput) -> Self {
+        let value = input.values;
+        let value_all_assets = input.value_all_assets;
+        let score = score_address(&value, &value_all_assets);
+        LensValue { value: score }
+    }
 }
 
+pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
+    let target = Principal::from_str(&targets[0]).unwrap();
+
+    let v = call_with_transform(target, args, |f| f.value_from_string().unwrap())
+        .await
+        .unwrap();
+    LensValue::from(v)
+}
 fn average_address(data: &[f64]) -> f64 {
     let n = data.len() as f64;
     if n == 0.0 {
@@ -26,7 +42,8 @@ fn log10_address(data: &[f64]) -> f64 {
 }
 
 fn max_log10_address(datasets: &[Vec<f64>]) -> f64 {
-    datasets.iter()
+    datasets
+        .iter()
         .map(|data| log10_address(data))
         .fold(0.0, f64::max)
 }
@@ -101,12 +118,7 @@ mod tests {
 
     #[test]
     fn test_score_usdc() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.9204038358579446;
         let result = score_address(&usdc, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -114,12 +126,7 @@ mod tests {
 
     #[test]
     fn test_score_usdt() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 1.0;
         let result = score_address(&usdt, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -127,12 +134,7 @@ mod tests {
 
     #[test]
     fn test_score_dai() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.6918397669104942;
         let result = score_address(&dai, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -140,15 +142,9 @@ mod tests {
 
     #[test]
     fn test_score_fdusd() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.33338340253051146;
         let result = score_address(&fdusd, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
 }
-

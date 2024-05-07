@@ -1,13 +1,28 @@
-use txvolume_accessors::*;
+use std::str::FromStr;
+
+use candid::Principal;
+use common::{call_with_transform, Args, CalculateInput};
+pub type CalculateArgs = Args;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
-    pub dummy: u64,
+    pub value: f64,
 }
-pub async fn calculate(targets: Vec<String>) -> LensValue {
-    let _result =
-        get_get_last_snapshot_in_sample_snapshot_indexer_icp(targets.get(0usize).unwrap().clone())
-            .await;
-    todo!()
+impl From<CalculateInput> for LensValue {
+    fn from(input: CalculateInput) -> Self {
+        let value = input.values;
+        let value_all_assets = input.value_all_assets;
+        let score = score_volume(&value, &value_all_assets);
+        LensValue { value: score }
+    }
+}
+
+pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
+    let target = Principal::from_str(&targets[0]).unwrap();
+
+    let v = call_with_transform(target, args, |f| f.value_from_string().unwrap())
+        .await
+        .unwrap();
+    LensValue::from(v)
 }
 
 fn average_volume(data: &[f64]) -> f64 {
@@ -130,12 +145,7 @@ mod tests {
 
     #[test]
     fn test_score_usdc() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 1.0;
         let result = score_volume(&usdc, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -143,12 +153,7 @@ mod tests {
 
     #[test]
     fn test_score_usdt() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.9894050495596063;
         let result = score_volume(&usdt, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -156,12 +161,7 @@ mod tests {
 
     #[test]
     fn test_score_dai() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.9959291287089729;
         let result = score_volume(&dai, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
@@ -169,12 +169,7 @@ mod tests {
 
     #[test]
     fn test_score_fdusd() {
-        let datasets = vec![
-            usdc.to_vec(),
-            usdt.to_vec(),
-            dai.to_vec(),
-            fdusd.to_vec(),
-        ];
+        let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
         let expected = 0.8791288544937829;
         let result = score_volume(&fdusd, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);

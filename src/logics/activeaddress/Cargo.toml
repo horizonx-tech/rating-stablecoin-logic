@@ -24,3 +24,4 @@ chainsight-cdk.workspace = true
 
 activeaddress_bindings = { path = "../../bindings/activeaddress_bindings" }
 activeaddress_accessors = { path = "../../accessors/activeaddress_accessors" }
+common = { path = "../common" }

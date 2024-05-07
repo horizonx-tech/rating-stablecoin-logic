@@ -23,4 +23,3 @@ chainsight-cdk-macros.workspace = true
 chainsight-cdk.workspace = true
 
 rating_indexer_bindings = { path = "../../bindings/rating_indexer_bindings" }
-

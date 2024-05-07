@@ -2,24 +2,28 @@ use std::cell::RefCell;
 
 use candid::{Decode, Encode, Principal};
 use chainsight_cdk::rpc::Caller;
+use chainsight_cdk::rpc::Receiver;
+use chainsight_cdk::rpc::ReceiverProvider;
+use chainsight_cdk::rpc::ReceiverProviderWithoutArgs;
 use chainsight_cdk::rpc::{CallProvider, Message};
 use chainsight_cdk_macros::{
     chainsight_common, did_export, init_in, prepare_stable_structure, stable_memory_for_scalar,
     timer_task_func, StableMemoryStorable,
 };
 
+use ic_cdk::api::management_canister::main::raw_rand;
 use ic_stable_structures::{memory_manager::MemoryId, BTreeMap};
 use ic_web3_rs::futures::future::join_all;
 use rating_indexer::CallCanisterArgs;
-use rating_indexer_bindings::{Args, LensArgs, Sources};
+use rating_indexer_bindings::{Args, LensArgs, LensValue, Sources};
 use types::{
-    CalculationStragety, Key, QueryOption, Snapshot, SnapshotId, SnapshotValue, Task, Value,
+    CalculationStragety, Key, QueryOption, Snapshot, SnapshotId, SnapshotValue, Task, TaskArgs,
+    Value,
 };
 use ulid_lib::Ulid;
 mod calculator;
 use crate::calculator::ScoreCalculator;
 
-use crate::types::ulid_from_unix_epoch;
 mod types;
 chainsight_common!();
 init_in!(2);
@@ -86,6 +90,29 @@ fn add_task(task: Task) {
 
 #[ic_cdk::update]
 #[candid::candid_method(update)]
+fn test_add_task() {
+    let task = Task {
+        id: "test".to_string(),
+        source: Principal::from_text("lpcxv-qqaaa-aaaao-a3mdq-cai").unwrap(),
+        args: TaskArgs {
+            id: "coingecko:bitcoin".to_string(),
+            ids: vec!["coingecko:bitcoin".to_string()],
+        },
+        strategy: CalculationStragety { weight: 1.0 },
+        lens: Principal::from_text("ndkhw-hyaaa-aaaao-a3mua-cai").unwrap(), // dex liquidity
+    };
+    TASKS.with(|tasks| {
+        tasks.borrow_mut().insert(
+            Key {
+                id: task.id.clone(),
+            },
+            task,
+        );
+    });
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
 fn remove_task(id: String) {
     only_controller!();
     TASKS.with(|tasks| {
@@ -120,6 +147,47 @@ fn max_count() -> u64 {
         }
         max_count.unwrap()
     })
+}
+
+fn _duration_seconds() -> u64 {
+    CONFIGS.with(|configs| {
+        let duration_seconds = configs
+            .borrow()
+            .get(&Key::from("duration_seconds".to_string()));
+        if duration_seconds.is_none() {
+            return 60 * 60 * 24; // 1 day
+        }
+        let duration_seconds = duration_seconds.unwrap();
+        let duration_seconds = duration_seconds.value.parse::<u64>();
+        if duration_seconds.is_err() {
+            return 60 * 60 * 24; // 1 day
+        }
+        duration_seconds.unwrap()
+    })
+}
+
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn duration_seconds() -> u64 {
+    _duration_seconds()
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+fn update_duration_seconds(duration_seconds: u64) {
+    only_controller!();
+    _update_duration_seconds(duration_seconds);
+}
+
+fn _update_duration_seconds(duration_seconds: u64) {
+    CONFIGS.with(|configs| {
+        configs.borrow_mut().insert(
+            Key::from("duration_seconds".to_string()),
+            Value {
+                value: duration_seconds.to_string(),
+            },
+        );
+    });
 }
 
 #[ic_cdk::update]
@@ -173,38 +241,41 @@ fn get_snapshots() -> Vec<Snapshot> {
     vec![]
 }
 
-#[ic_cdk::query]
-#[candid::candid_method(query)]
+#[ic_cdk::update]
+#[candid::candid_method(update)]
 async fn query_between(opt: QueryOption) -> Vec<Snapshot> {
     let from = opt.from_timestamp.unwrap_or(0);
     let to = opt.to_timestamp.unwrap_or(0);
-    snapshots_between(from, to).await
+    let divisor = 1_000_000; // nanosec to msec
+    snapshots_between(from / divisor, to / divisor).await
 }
 
 async fn snapshots_between(from: i64, to: i64) -> Vec<Snapshot> {
     let mut result = vec![];
-    let from_id: Ulid = ulid_from_unix_epoch(from).await;
-    let to_id: Ulid = ulid_from_unix_epoch(to).await;
+    let rand = raw_rand().await.unwrap().0;
+    let from_id = Ulid::from_parts(from as u64, u128::from(rand[0]));
+    let to_id = Ulid::from_parts(to as u64, u128::from(rand[0]));
     let mut ids_to_fetch = vec![];
     SNAPSHOT_IDS.with(|id| {
-        for idx in id.borrow().len()..0 {
-            let id = id.borrow().get(idx).unwrap();
-            let id = Ulid::from_string(&id.id).unwrap();
-            if id < from_id {
+        let snapshot_len = id.borrow().len();
+        for idx in 0..snapshot_len {
+            let id = id.borrow().get(snapshot_len - idx - 1).unwrap();
+            let ulid = Ulid::from_string(&id.id).unwrap();
+            if ulid.lt(&from_id) {
                 break;
             }
-            if id <= to_id {
-                ids_to_fetch.push(id);
+            if ulid.le(&to_id) {
+                ids_to_fetch.push(ulid);
+            }
+        }
+        for id in ids_to_fetch {
+            let snapshot = SNAPSHOTS
+                .with(|snapshots| snapshots.borrow().get(&SnapshotId { id: id.to_string() }));
+            if let Some(snapshot) = snapshot {
+                result.push(snapshot.clone());
             }
         }
     });
-    for id in ids_to_fetch {
-        let snapshot =
-            SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&SnapshotId { id: id.to_string() }));
-        if let Some(snapshot) = snapshot {
-            result.push(snapshot.clone());
-        }
-    }
     result
 }
 
@@ -212,6 +283,20 @@ async fn snapshots_between(from: i64, to: i64) -> Vec<Snapshot> {
 #[candid::candid_method(query)]
 fn get_sources() -> Vec<Sources> {
     vec![]
+}
+
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_snapshot(_: u64) -> Snapshot {
+    // unsupported
+    get_last_snapshot()
+}
+
+#[ic_cdk::query]
+#[candid::candid_method(query)]
+fn get_snapshot_value(_: u64) -> SnapshotValue {
+    // unsupported
+    get_last_snapshot_value()
 }
 
 #[ic_cdk::query]
@@ -282,9 +367,7 @@ fn _delete(size: usize) {
             idx += 1;
         }
         let deletion_count = ids.len() - idx;
-        println!("deletion_count: {}", deletion_count);
         for _ in 0..deletion_count {
-            println!("pop");
             ids.pop();
         }
         SNAPSHOTS.with(|snapshots| {
@@ -304,17 +387,23 @@ fn _add_snapshot(snapshot: Snapshot) {
     SNAPSHOT_IDS.with(|ids| {
         ids.borrow_mut().push(&snapshot.id.clone()).unwrap();
     });
+    _delete_snapshots();
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn test_index() {
+    _index().await.unwrap();
 }
 
 async fn _index() -> Result<(), String> {
     let mut futures = vec![];
     let mut strategies = vec![];
     let mut ids = vec![];
+    let duration = duration_seconds();
     TASKS.with(|tasks| {
         for task in tasks.borrow().iter() {
-            let args = task.1.args.clone();
-            let source = task.1.source;
-            let future = call(source, args);
+            let future = call(task.1.lens, task.1.to_lens_args(duration));
             futures.push(future);
             strategies.push(task.1.strategy);
             ids.push(task.0.clone());
@@ -337,14 +426,14 @@ async fn _index() -> Result<(), String> {
         .collect();
     let score = ScoreCalculator::new().calculate(score_input);
     let new_snapshot = Snapshot {
-        id: SnapshotId::new(),
+        id: SnapshotId::new().await,
         value: score,
         scores,
     };
     _add_snapshot(new_snapshot);
-    _delete_snapshots();
     Ok(())
 }
+
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn index() {
@@ -353,7 +442,7 @@ async fn index() {
 }
 
 async fn call(lens: Principal, args: LensArgs) -> Result<f64, String> {
-    let method_name = "proxy_get_value";
+    let method_name = "proxy_get_result";
     let px = _get_target_proxy(lens).await;
     let result = CallProvider::new()
         .call(
@@ -363,8 +452,74 @@ async fn call(lens: Principal, args: LensArgs) -> Result<f64, String> {
         .await
         .map_err(|e| format!("failed to call: {:?}", e))?;
     result
-        .reply::<f64>()
+        .reply::<LensValue>()
         .map_err(|e| format!("failed to decode reply: {:?}", e))
+        .map(|v| v.value)
+}
+
+/// proxy methods
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_last_snapshot(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProviderWithoutArgs::<Snapshot>::new(proxy(), get_last_snapshot)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_last_snapshot_value(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProviderWithoutArgs::<SnapshotValue>::new(proxy(), get_last_snapshot_value)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_snapshot(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProvider::<u64, Snapshot>::new(proxy(), get_snapshot)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_snapshot_value(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProvider::<u64, SnapshotValue>::new(proxy(), get_snapshot_value)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_snapshots(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProviderWithoutArgs::<Vec<Snapshot>>::new(proxy(), get_snapshots)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_top_snapshot_values(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProvider::<u64, Vec<SnapshotValue>>::new(proxy(), get_top_snapshot_values)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_get_top_snapshots(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProvider::<u64, Vec<Snapshot>>::new(proxy(), get_top_snapshots)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_snapshots_len(input: Vec<u8>) -> Vec<u8> {
+    ReceiverProviderWithoutArgs::<u64>::new(proxy(), snapshots_len)
+        .reply(input)
+        .await
 }
 
 #[cfg(test)]
@@ -376,27 +531,54 @@ mod test2 {
     #[test]
     fn test_add_snapshot() {
         let snapshot = Snapshot {
-            id: SnapshotId::new(),
+            id: SnapshotId {
+                id: "01HX8MP06M000000000000004F".to_string(),
+            },
             value: 0.0,
             scores: HashMap::new(),
         };
         _add_snapshot(snapshot.clone());
         let result = SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&snapshot.id));
         assert_eq!(result.unwrap().id, snapshot.id);
+        let ids_result = SNAPSHOT_IDS.with(|ids| ids.borrow().len());
+        assert_eq!(ids_result, 1);
     }
-    //#[test]
-    //fn test_delete_snapshot() {
-    //    let snapshot = Snapshot {
-    //        id: SnapshotId::new(),
-    //        value: 0.0,
-    //        scores: HashMap::new(),
-    //    };
-    //    _add_snapshot(snapshot.clone());
-    //    _update_max_count(0);
-    //    _delete_snapshots();
-    //    let result = SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&snapshot.id));
-    //    assert_eq!(result, None);
-    //}
+
+    #[test]
+    fn test_delete_snapshot() {
+        let snapshot = Snapshot {
+            id: SnapshotId {
+                id: "01HX8MP06M000000000000004F".to_string(),
+            },
+            value: 0.0,
+            scores: HashMap::new(),
+        };
+        _update_max_count(0);
+        _add_snapshot(snapshot.clone());
+        let result = SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&snapshot.id));
+        assert_eq!(result, None);
+        _update_max_count(1);
+        let new_snapshot_1 = Snapshot {
+            id: SnapshotId {
+                id: "01HX8MP06M000000000000004F".to_string(),
+            },
+            value: 0.0,
+            scores: HashMap::new(),
+        };
+        let new_snapshot_2 = Snapshot {
+            id: SnapshotId {
+                id: "01HX8MP06M000000000000004E".to_string(),
+            },
+            value: 0.0,
+            scores: HashMap::new(),
+        };
+        _add_snapshot(new_snapshot_1.clone());
+        _add_snapshot(new_snapshot_2.clone());
+        let result_1 = SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&new_snapshot_1.id));
+        assert_eq!(result_1, None);
+        let result_2 = SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&new_snapshot_2.id));
+        assert_eq!(result_2.unwrap().id, new_snapshot_2.id);
+    }
 }
 
 did_export!("rating_indexer");
