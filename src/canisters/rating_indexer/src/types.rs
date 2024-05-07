@@ -187,7 +187,7 @@ impl Into<String> for Key {
 pub struct Value {
     pub value: String,
 }
-
+#[cfg(not(test))]
 pub async fn raw_rand() -> Result<Vec<u8>, String> {
     let (rand_msb,): (Vec<u8>,) =
         ic_cdk::api::call::call(Principal::management_canister(), "raw_rand", ())
