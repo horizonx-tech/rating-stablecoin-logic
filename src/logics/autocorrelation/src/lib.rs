@@ -1,29 +1,16 @@
-use std::{collections::HashMap, f64::consts::LOG10_E, str::FromStr};
+use std::{f64::consts::LOG10_E, str::FromStr};
 
 use autocorrelation_accessors::*;
 use candid::Principal;
-use common::{calc, Args, CalculateInput};
+use common::{call_and_score, Args};
 pub type CalculateArgs = Args;
-#[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
-pub struct LensValue {
-    pub value: HashMap<String, f64>,
-}
-
-impl From<CalculateInput> for LensValue {
-    fn from(input: CalculateInput) -> Self {
-        let value_all_assets = input.value_all_assets;
-        let values_all_assets: Vec<Vec<f64>> = value_all_assets.values().cloned().collect();
-        let value = value_all_assets
-            .iter()
-            .map(|(k, v)| (k.clone(), score_autocorrelation(v, &values_all_assets)))
-            .collect();
-        LensValue { value }
-    }
-}
+pub type LensValue = common::LensValue;
 
 pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
     let target = Principal::from_str(&targets[0]).unwrap();
-    calc(target, args).await.unwrap()
+    call_and_score(target, args, score_autocorrelation)
+        .await
+        .unwrap()
 }
 
 fn autocorrelation(data: &[f64]) -> f64 {

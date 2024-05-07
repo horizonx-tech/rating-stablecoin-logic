@@ -1,34 +1,19 @@
-use std::collections::HashMap;
 use std::str::FromStr;
 pub type CalculateArgs = Args;
 use activeaddress_accessors::*;
 use candid::Principal;
-use common::call_with_transform;
+use common::call_and_transform;
+use common::score_from_input;
 use common::Args;
-use common::CalculateInput;
-#[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
-pub struct LensValue {
-    pub value: HashMap<String, f64>,
-}
-impl From<CalculateInput> for LensValue {
-    fn from(input: CalculateInput) -> Self {
-        let value_all_assets = input.value_all_assets;
-        let values_all_assets: Vec<Vec<f64>> = value_all_assets.values().cloned().collect();
-        let value = value_all_assets
-            .iter()
-            .map(|(k, v)| (k.clone(), score_address(v, &values_all_assets)))
-            .collect();
-        LensValue { value }
-    }
-}
+pub type LensValue = common::LensValue;
 
 pub async fn calculate(targets: Vec<String>, args: CalculateArgs) -> LensValue {
     let target = Principal::from_str(&targets[0]).unwrap();
 
-    let v = call_with_transform(target, args, |f| f.value_from_string().unwrap())
+    let v = call_and_transform(target, args, |f| f.value_from_string().unwrap())
         .await
         .unwrap();
-    LensValue::from(v)
+    score_from_input(v, score_address)
 }
 fn average_address(data: &[f64]) -> f64 {
     let n = data.len() as f64;
