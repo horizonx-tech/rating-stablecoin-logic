@@ -578,6 +578,7 @@ mod test2 {
         assert_eq!(result_1, None);
         let result_2 = SNAPSHOTS.with(|snapshots| snapshots.borrow().get(&new_snapshot_2.id));
         assert_eq!(result_2.unwrap().id, new_snapshot_2.id);
+        assert_eq!(snapshots_len(), 1);
     }
 }
 
