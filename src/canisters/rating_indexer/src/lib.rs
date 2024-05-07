@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 
 use candid::{Decode, Encode, Principal};
+use chainsight_cdk::rpc::AsyncReceiverProvider;
 use chainsight_cdk::rpc::Caller;
 use chainsight_cdk::rpc::Receiver;
 use chainsight_cdk::rpc::ReceiverProvider;
@@ -14,6 +15,8 @@ use chainsight_cdk_macros::{
 use ic_cdk::api::management_canister::main::raw_rand;
 use ic_stable_structures::{memory_manager::MemoryId, BTreeMap};
 use ic_web3_rs::futures::future::join_all;
+use ic_web3_rs::futures::future::BoxFuture;
+use ic_web3_rs::futures::FutureExt;
 use rating_indexer::CallCanisterArgs;
 use rating_indexer_bindings::{Args, LensArgs, LensValue, Sources};
 use types::{
@@ -244,10 +247,14 @@ fn get_snapshots() -> Vec<Snapshot> {
 #[ic_cdk::update]
 #[candid::candid_method(update)]
 async fn query_between(opt: QueryOption) -> Vec<Snapshot> {
+    _query_between(opt).await
+}
+
+fn _query_between(opt: QueryOption) -> BoxFuture<'static, Vec<Snapshot>> {
     let from = opt.from_timestamp.unwrap_or(0);
     let to = opt.to_timestamp.unwrap_or(0);
     let divisor = 1_000_000; // nanosec to msec
-    snapshots_between(from / divisor, to / divisor).await
+    async move { snapshots_between(from / divisor, to / divisor).await }.boxed()
 }
 
 async fn snapshots_between(from: i64, to: i64) -> Vec<Snapshot> {
@@ -518,6 +525,14 @@ async fn proxy_get_top_snapshots(input: Vec<u8>) -> Vec<u8> {
 #[candid::candid_method(update)]
 async fn proxy_snapshots_len(input: Vec<u8>) -> Vec<u8> {
     ReceiverProviderWithoutArgs::<u64>::new(proxy(), snapshots_len)
+        .reply(input)
+        .await
+}
+
+#[ic_cdk::update]
+#[candid::candid_method(update)]
+async fn proxy_query_between(input: Vec<u8>) -> Vec<u8> {
+    AsyncReceiverProvider::<QueryOption, Vec<Snapshot>>::new(proxy(), _query_between)
         .reply(input)
         .await
 }
