@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use candid::Principal;
 use common::{calc, Args, CalculateInput};
@@ -6,14 +6,17 @@ use variance_accessors::*;
 pub type CalculateArgs = Args;
 #[derive(Clone, Debug, Default, candid :: CandidType, serde :: Deserialize, serde :: Serialize)]
 pub struct LensValue {
-    pub value: f64,
+    pub value: HashMap<String, f64>,
 }
 impl From<CalculateInput> for LensValue {
     fn from(input: CalculateInput) -> Self {
-        let value = input.values;
         let value_all_assets = input.value_all_assets;
-        let score = score_variance(&value, &value_all_assets);
-        LensValue { value: score }
+        let values_all_assets: Vec<Vec<f64>> = value_all_assets.values().cloned().collect();
+        let value = value_all_assets
+            .iter()
+            .map(|(k, v)| (k.clone(), score_variance(v, &values_all_assets)))
+            .collect();
+        LensValue { value }
     }
 }
 

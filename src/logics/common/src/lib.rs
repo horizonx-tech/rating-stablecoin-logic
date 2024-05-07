@@ -1,17 +1,17 @@
+use std::collections::HashMap;
+
 use candid::{CandidType, Principal};
 use indexer::{BulkSnapshotIndexerHttps, Snapshot};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, CandidType, Deserialize, Serialize, Default)]
 pub struct Args {
-    pub id: String,
     pub ids: Vec<String>,
     pub from: Option<i64>,
     pub to: Option<i64>,
 }
 pub struct CalculateInput {
-    pub values: Vec<f64>,
-    pub value_all_assets: Vec<Vec<f64>>,
+    pub value_all_assets: HashMap<String, Vec<f64>>,
 }
 
 pub async fn call_with_transform(
@@ -20,24 +20,17 @@ pub async fn call_with_transform(
     transform: impl Fn(Snapshot) -> f64,
 ) -> Result<CalculateInput, String> {
     let indexer = BulkSnapshotIndexerHttps::new(target);
-    let value = indexer.query(args.id, args.from, args.to).await?;
-    let values = value
-        .iter()
-        .map(|x| transform(x.clone()))
-        .collect::<Vec<f64>>();
-    let mut value_all_assets = vec![];
-    for id in args.ids {
-        let value = indexer.query(id, args.from, args.to).await?;
-        let values = value
+    let mut value_all_assets = HashMap::new();
+    for id in args.ids.clone() {
+        let value = indexer
+            .query(id.clone(), args.from, args.to)
+            .await?
             .iter()
             .map(|x| transform(x.clone()))
-            .collect::<Vec<f64>>();
-        value_all_assets.push(values);
+            .collect();
+        value_all_assets.insert(id, value);
     }
-    Ok(CalculateInput {
-        values,
-        value_all_assets,
-    })
+    Ok(CalculateInput { value_all_assets })
 }
 
 async fn call(target: Principal, args: Args) -> Result<CalculateInput, String> {
