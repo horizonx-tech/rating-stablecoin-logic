@@ -1,9 +1,4 @@
-type Args = record {
-  id : text;
-  to : opt int64;
-  ids : vec text;
-  from : opt int64;
-};
+type Args = record { to : opt int64; ids : vec text; from : opt int64 };
 type CalculationStragety = record { weight : float64 };
 type CycleManagement = record {
   refueling_amount : nat;
@@ -33,8 +28,8 @@ type Result = variant { Ok; Err : InitError };
 type Result_1 = variant { Ok; Err : text };
 type Snapshot = record {
   id : SnapshotId;
-  value : float64;
-  scores : vec record { text; float64 };
+  value : vec record { text; float64 };
+  scores : vec record { text; vec record { text; float64 } };
 };
 type SnapshotId = record { id : text };
 type SourceType = variant { evm; https; chainsight };
@@ -47,23 +42,27 @@ type Sources = record {
 type Task = record {
   id : text;
   source : principal;
-  args : TaskArgs;
-  strategy : CalculationStragety;
   lens : principal;
+  options : TaskOptions;
 };
-type TaskArgs = record { id : text; ids : vec text };
+type TaskOption = record {
+  id_to_fetch : text;
+  aggregation_key : text;
+  strategy : CalculationStragety;
+};
+type TaskOptions = record { options : vec TaskOption };
 service : {
   add_task : (Task) -> ();
   call_args : () -> (LensArgs) query;
   duration_seconds : () -> (nat64) query;
   get_last_snapshot : () -> (Snapshot) query;
-  get_last_snapshot_value : () -> (float64) query;
+  get_last_snapshot_value : () -> (vec record { text; float64 }) query;
   get_proxy : () -> (principal);
   get_snapshot : (nat64) -> (Snapshot) query;
-  get_snapshot_value : (nat64) -> (float64) query;
+  get_snapshot_value : (nat64) -> (vec record { text; float64 }) query;
   get_snapshots : () -> (vec Snapshot) query;
   get_sources : () -> (vec Sources) query;
-  get_top_snapshot_values : (nat64) -> (vec float64) query;
+  get_top_snapshot_values : (nat64) -> (vec vec record { text; float64 }) query;
   get_top_snapshots : (nat64) -> (vec Snapshot) query;
   index : () -> ();
   init_in : (Env, CycleManagements) -> (Result);
@@ -75,14 +74,14 @@ service : {
   proxy_get_snapshots : (vec nat8) -> (vec nat8);
   proxy_get_top_snapshot_values : (vec nat8) -> (vec nat8);
   proxy_get_top_snapshots : (vec nat8) -> (vec nat8);
+  proxy_query_between : (vec nat8) -> (vec nat8);
   proxy_snapshots_len : (vec nat8) -> (vec nat8);
-  query_between : (QueryOption) -> (vec Snapshot);
+  query_between : (QueryOption) -> (vec Snapshot) query;
   remove_task : (text) -> ();
   set_task : (nat32, nat32, bool) -> ();
   setup : () -> (Result_1);
   snapshots_len : () -> (nat64) query;
   tasks : () -> (vec Task) query;
-  test_add_task : () -> ();
   test_index : () -> ();
   update_duration_seconds : (nat64) -> ();
   update_max_count : (nat64) -> ();

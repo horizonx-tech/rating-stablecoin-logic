@@ -41,14 +41,27 @@ impl BulkSnapshotIndexerHttps {
 }
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Snapshot {
-    id: SnapshotId,
-    value: SnapshotValue,
-    timestamp: u64,
+    pub id: SnapshotId,
+    pub value: SnapshotValue,
+    pub timestamp: u64,
+}
+
+impl Default for Snapshot {
+    fn default() -> Self {
+        let value = 0.0_f64;
+        Snapshot {
+            id: SnapshotId { id: "".to_string() },
+            value: SnapshotValue {
+                raw: bincode::serialize(&value).unwrap(),
+            },
+            timestamp: 0,
+        }
+    }
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-struct SnapshotValue {
-    raw: Vec<u8>,
+pub struct SnapshotValue {
+    pub raw: Vec<u8>,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -74,7 +87,7 @@ impl Snapshot {
             ic_cdk::println!("Failed to deserialize value: {:?}", value_string.err());
             return None;
         }
-        Some(value_string.unwrap().v.parse().unwrap())
+        Some(value_string.unwrap().v.parse().unwrap_or_default())
     }
 }
 

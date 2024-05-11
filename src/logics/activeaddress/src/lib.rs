@@ -1,6 +1,5 @@
 use std::str::FromStr;
 pub type CalculateArgs = Args;
-use activeaddress_accessors::*;
 use candid::Principal;
 use common::call_and_transform;
 use common::score_from_input;

@@ -17,5 +17,5 @@ datasource:
 is_target_component: null
 lens_targets: null
 timer_settings:
-  interval_sec: 3600
+  interval_sec: 86400 # 1 day
 cycles: null

@@ -21,34 +21,42 @@ const NANOS_PER_SEC: u64 = 1_000_000_000;
 pub struct Snapshot {
     pub id: SnapshotId,
     pub value: SnapshotValue,
-    pub scores: HashMap<TaskId, SnapshotValue>,
+    pub scores: HashMap<AggregationKey, HashMap<TaskId, f64>>,
 }
 
 impl Snapshot {
-    pub async fn from(scores: HashMap<TaskId, (SnapshotValue, CalculationStragety)>) -> Self {
-        let id = SnapshotId::new().await;
-        let values = scores
-            .values()
-            .into_iter()
-            .map(|(v, s)| (*v, Some(s.weight)))
-            .collect();
-        let value = ScoreCalculator::new().calculate(values);
-        let scores = scores.into_iter().map(|(k, (v, _))| (k, v)).collect();
-        Self { id, value, scores }
-    }
+    //    pub async fn from(scores: HashMap<TaskId, (SnapshotValue, CalculationStragety)>) -> Self {
+    //        let id = SnapshotId::new().await;
+    //        let values = scores
+    //            .values()
+    //            .into_iter()
+    //            .map(|(v, s)| (*v, Some(s.weight)))
+    //            .collect();
+    //        let value = ScoreCalculator::new().calculate(values);
+    //        let scores = scores.into_iter().map(|(k, (v, _))| (k, v)).collect();
+    //        Self { id, value, scores }
+    //    }
 }
 
-pub type SnapshotValue = f64;
-type TaskId = String;
+pub type SnapshotValue = HashMap<AggregationKey, f64>;
+pub type TaskId = String;
+pub type AggregationKey = String;
+pub type IdToFetch = String;
+
+#[derive(CandidType, Clone, StableMemoryStorable, Serialize, Deserialize)]
+pub struct TaskOption {
+    pub id_to_fetch: IdToFetch,
+    pub aggregation_key: AggregationKey,
+    pub strategy: CalculationStragety,
+}
 
 #[derive(CandidType, Clone, StableMemoryStorable, Serialize, Deserialize)]
 #[stable_mem_storable_opts(max_size = 10000, is_fixed_size = true)]
 pub struct Task {
     pub id: TaskId,
     pub lens: Principal,
-    pub args: TaskArgs,
+    pub options: TaskOptions,
     pub source: Principal,
-    pub strategy: CalculationStragety,
 }
 
 impl Task {
@@ -60,17 +68,20 @@ impl Task {
             args: Args {
                 from: Some(from),
                 to: Some(now as i64),
-                id: self.args.id.clone(),
-                ids: self.args.ids.clone(),
+                ids: self
+                    .options
+                    .options
+                    .iter()
+                    .map(|k| k.id_to_fetch.clone())
+                    .collect(),
             },
             targets: vec![self.source.clone().to_string()],
         }
     }
 }
 #[derive(CandidType, Clone, StableMemoryStorable, Serialize, Deserialize)]
-pub struct TaskArgs {
-    pub id: String,
-    pub ids: Vec<String>,
+pub struct TaskOptions {
+    pub options: Vec<TaskOption>,
 }
 
 #[derive(CandidType, Clone, StableMemoryStorable, Serialize, Deserialize)]

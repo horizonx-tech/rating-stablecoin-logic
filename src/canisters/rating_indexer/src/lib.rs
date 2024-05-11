@@ -1,5 +1,7 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 
+use candid::CandidType;
 use candid::{Decode, Encode, Principal};
 use chainsight_cdk::rpc::AsyncReceiverProvider;
 use chainsight_cdk::rpc::Caller;
@@ -12,17 +14,15 @@ use chainsight_cdk_macros::{
     timer_task_func, StableMemoryStorable,
 };
 
-use ic_cdk::api::management_canister::main::raw_rand;
 use ic_stable_structures::{memory_manager::MemoryId, BTreeMap};
 use ic_web3_rs::futures::future::join_all;
 use ic_web3_rs::futures::future::BoxFuture;
 use ic_web3_rs::futures::FutureExt;
 use rating_indexer::CallCanisterArgs;
 use rating_indexer_bindings::{Args, LensArgs, LensValue, Sources};
-use types::{
-    CalculationStragety, Key, QueryOption, Snapshot, SnapshotId, SnapshotValue, Task, TaskArgs,
-    Value,
-};
+use serde::{Deserialize, Serialize};
+use types::{AggregationKey, IdToFetch, TaskId};
+use types::{Key, QueryOption, Snapshot, SnapshotId, SnapshotValue, Task, Value};
 use ulid_lib::Ulid;
 mod calculator;
 use crate::calculator::ScoreCalculator;
@@ -81,29 +81,6 @@ fn setup() -> Result<(), String> {
 #[candid::candid_method(update)]
 fn add_task(task: Task) {
     only_controller!();
-    TASKS.with(|tasks| {
-        tasks.borrow_mut().insert(
-            Key {
-                id: task.id.clone(),
-            },
-            task,
-        );
-    });
-}
-
-#[ic_cdk::update]
-#[candid::candid_method(update)]
-fn test_add_task() {
-    let task = Task {
-        id: "test".to_string(),
-        source: Principal::from_text("lpcxv-qqaaa-aaaao-a3mdq-cai").unwrap(),
-        args: TaskArgs {
-            id: "coingecko:bitcoin".to_string(),
-            ids: vec!["coingecko:bitcoin".to_string()],
-        },
-        strategy: CalculationStragety { weight: 1.0 },
-        lens: Principal::from_text("ndkhw-hyaaa-aaaao-a3mua-cai").unwrap(), // dex liquidity
-    };
     TASKS.with(|tasks| {
         tasks.borrow_mut().insert(
             Key {
@@ -218,7 +195,6 @@ fn call_args() -> LensArgs {
         args: Args {
             from: None,
             to: None,
-            id: "".to_string(),
             ids: vec![],
         },
         targets: vec![],
@@ -244,8 +220,8 @@ fn get_snapshots() -> Vec<Snapshot> {
     vec![]
 }
 
-#[ic_cdk::update]
-#[candid::candid_method(update)]
+#[ic_cdk::query]
+#[candid::candid_method(query)]
 async fn query_between(opt: QueryOption) -> Vec<Snapshot> {
     _query_between(opt).await
 }
@@ -254,24 +230,21 @@ fn _query_between(opt: QueryOption) -> BoxFuture<'static, Vec<Snapshot>> {
     let from = opt.from_timestamp.unwrap_or(0);
     let to = opt.to_timestamp.unwrap_or(0);
     let divisor = 1_000_000; // nanosec to msec
-    async move { snapshots_between(from / divisor, to / divisor).await }.boxed()
+    async move { snapshots_between((from / divisor) as u64, (to / divisor) as u64).await }.boxed()
 }
 
-async fn snapshots_between(from: i64, to: i64) -> Vec<Snapshot> {
+async fn snapshots_between(from: u64, to: u64) -> Vec<Snapshot> {
     let mut result = vec![];
-    let rand = raw_rand().await.unwrap().0;
-    let from_id = Ulid::from_parts(from as u64, u128::from(rand[0]));
-    let to_id = Ulid::from_parts(to as u64, u128::from(rand[0]));
     let mut ids_to_fetch = vec![];
     SNAPSHOT_IDS.with(|id| {
         let snapshot_len = id.borrow().len();
         for idx in 0..snapshot_len {
             let id = id.borrow().get(snapshot_len - idx - 1).unwrap();
             let ulid = Ulid::from_string(&id.id).unwrap();
-            if ulid.lt(&from_id) {
+            if ulid.timestamp_ms().lt(&from) {
                 break;
             }
-            if ulid.le(&to_id) {
+            if ulid.timestamp_ms().le(&to) {
                 ids_to_fetch.push(ulid);
             }
         }
@@ -403,41 +376,103 @@ async fn test_index() {
     _index().await.unwrap();
 }
 
+fn weight(key: Key, fetch_key: String) -> f64 {
+    TASKS.with(|tasks| {
+        let default = 1.0;
+        let task = tasks.borrow().get(&key);
+        if task.is_none() {
+            return default;
+        }
+        let task = task.unwrap();
+        let options = task.options.options;
+        for opt in options {
+            if opt.id_to_fetch.eq(&fetch_key) {
+                return opt.strategy.weight;
+            }
+        }
+        default
+    })
+}
+fn aggregation_key(key: Key, id_to_fetch: IdToFetch) -> AggregationKey {
+    TASKS.with(|tasks| {
+        let default = "".to_string();
+        let task = tasks.borrow().get(&key);
+        if task.is_none() {
+            return default;
+        }
+        let task = task.unwrap();
+        let options = task.options.options;
+        for opt in options {
+            if opt.id_to_fetch.eq(&id_to_fetch) {
+                return opt.aggregation_key;
+            }
+        }
+        default
+    })
+}
+
 async fn _index() -> Result<(), String> {
     let mut futures = vec![];
-    let mut strategies = vec![];
-    let mut ids = vec![];
+    let mut task_ids = vec![];
     let duration = duration_seconds();
     TASKS.with(|tasks| {
-        for task in tasks.borrow().iter() {
-            let future = call(task.1.lens, task.1.to_lens_args(duration));
+        for (key, task) in tasks.borrow().iter() {
+            task_ids.push(key.clone());
+            let future = async move {
+                let out = call(task.lens, task.to_lens_args(duration)).await.unwrap();
+                let mut scores = HashMap::new();
+                for (k, v) in out.clone().iter() {
+                    let weight = weight(key.clone(), k.clone());
+                    scores.insert(k.to_string(), (v.to_owned(), weight));
+                }
+                scores
+            };
             futures.push(future);
-            strategies.push(task.1.strategy);
-            ids.push(task.0.clone());
         }
     });
-    let results: Vec<(f64, CalculationStragety)> = join_all(futures)
-        .await
-        .iter()
-        .zip(strategies.iter())
-        .map(|(r, s)| (r.clone().unwrap(), s.clone()))
-        .collect();
-    let score_input: Vec<(f64, Option<f64>)> = results
-        .into_iter()
-        .map(|(score, strategy)| (score, Some(strategy.weight)))
-        .collect();
-    let scores = ids
-        .into_iter()
-        .zip(score_input.clone().into_iter())
-        .map(|(id, score_input)| (id.id, score_input.0))
-        .collect();
-    let score = ScoreCalculator::new().calculate(score_input);
-    let new_snapshot = Snapshot {
+    let results = join_all(futures).await;
+    let mut results_by_assets: HashMap<AggregationKey, HashMap<TaskId, (f64, f64)>> =
+        HashMap::new();
+    for (idx, result) in results.iter().enumerate() {
+        let key = task_ids.get(idx).unwrap();
+        let task = TASKS.with(|tasks| tasks.borrow().get(key).unwrap());
+        result.iter().for_each(|(k, v)| {
+            let id_to_fetch = k.clone();
+            let (value, weight) = v.clone();
+            let task_id = task.id.clone();
+            let aggregation_key = aggregation_key(key.clone(), id_to_fetch.clone());
+            let scores = results_by_assets.get(&aggregation_key);
+            if scores.is_none() {
+                let mut new_scores = HashMap::new();
+                new_scores.insert(task_id.clone(), (value.unwrap_or_default(), weight));
+                results_by_assets.insert(aggregation_key.clone(), new_scores);
+            }
+            let scores = results_by_assets.get_mut(&aggregation_key).unwrap();
+            scores.insert(task_id.clone(), (value.unwrap_or_default(), weight));
+        });
+    }
+    let mut score = HashMap::new();
+    let mut scores: HashMap<AggregationKey, HashMap<TaskId, f64>> = HashMap::new();
+    results_by_assets.clone().iter().for_each(|r| {
+        let s = r.1.clone();
+        let mut new_scores: HashMap<TaskId, f64> = HashMap::new();
+        let values = s
+            .iter()
+            .map(|(k, v)| {
+                new_scores.insert(k.clone(), v.0);
+                return (v.0, Some(v.1));
+            })
+            .collect();
+        score.insert(r.0.clone(), ScoreCalculator::new().calculate(values));
+        scores.insert(r.0.clone(), new_scores);
+    });
+    let snapshot = Snapshot {
         id: SnapshotId::new().await,
         value: score,
         scores,
     };
-    _add_snapshot(new_snapshot);
+    _add_snapshot(snapshot);
+
     Ok(())
 }
 
@@ -448,7 +483,12 @@ async fn index() {
     _index().await.unwrap();
 }
 
-async fn call(lens: Principal, args: LensArgs) -> Result<f64, String> {
+#[derive(Clone, Debug, CandidType, Deserialize, Serialize)]
+struct LensValueExt {
+    value: HashMap<String, Option<f64>>,
+}
+
+async fn call(lens: Principal, args: LensArgs) -> Result<HashMap<String, Option<f64>>, String> {
     let method_name = "proxy_get_result";
     let px = _get_target_proxy(lens).await;
     let result = CallProvider::new()
@@ -459,7 +499,7 @@ async fn call(lens: Principal, args: LensArgs) -> Result<f64, String> {
         .await
         .map_err(|e| format!("failed to call: {:?}", e))?;
     result
-        .reply::<LensValue>()
+        .reply::<LensValueExt>()
         .map_err(|e| format!("failed to decode reply: {:?}", e))
         .map(|v| v.value)
 }
@@ -549,7 +589,7 @@ mod test2 {
             id: SnapshotId {
                 id: "01HX8MP06M000000000000004F".to_string(),
             },
-            value: 0.0,
+            value: HashMap::new(),
             scores: HashMap::new(),
         };
         _add_snapshot(snapshot.clone());
@@ -565,7 +605,7 @@ mod test2 {
             id: SnapshotId {
                 id: "01HX8MP06M000000000000004F".to_string(),
             },
-            value: 0.0,
+            value: HashMap::new(),
             scores: HashMap::new(),
         };
         _update_max_count(0);
@@ -577,14 +617,14 @@ mod test2 {
             id: SnapshotId {
                 id: "01HX8MP06M000000000000004F".to_string(),
             },
-            value: 0.0,
+            value: HashMap::new(),
             scores: HashMap::new(),
         };
         let new_snapshot_2 = Snapshot {
             id: SnapshotId {
-                id: "01HX8MP06M000000000000004E".to_string(),
+                id: "01HX8MP06M000000000000004F".to_string(),
             },
-            value: 0.0,
+            value: HashMap::new(),
             scores: HashMap::new(),
         };
         _add_snapshot(new_snapshot_1.clone());

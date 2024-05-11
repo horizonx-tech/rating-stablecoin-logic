@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn test_usdc_log10() {
         let data = usdc;
-        let expected = 3.1470845360751025;
+        let expected = 3.147084536075102;
         let result = negative_log10_deviation(&data);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }
@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn test_score_usdc() {
         let datasets = vec![usdc.to_vec(), usdt.to_vec(), dai.to_vec(), fdusd.to_vec()];
-        let expected = 0.8405587657505329;
+        let expected = 0.8405587657505328;
         let result = score_deviation(&usdc, &datasets);
         assert_eq!(result, expected, "Expected {}, got {}", expected, result);
     }

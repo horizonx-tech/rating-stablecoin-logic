@@ -73,6 +73,31 @@
         }
       ]
     },
+    "rating_indexer_30days": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./rating_indexer.did",
+      "wasm": "./rating_indexer.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
+
+    "rating_indexer_entire_period": {
+      "gzip": true,
+      "type": "custom",
+      "candid": "./rating_indexer.did",
+      "wasm": "./rating_indexer.wasm",
+      "metadata": [
+        {
+          "name": "candid:service",
+          "visibility": "public"
+        }
+      ]
+    },
     "rating_indexer": {
       "gzip": true,
       "type": "custom",

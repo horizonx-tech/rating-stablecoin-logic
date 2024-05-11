@@ -1,17 +1,29 @@
 {
+  "activeaddress": {
+    "ic": "f7jix-maaaa-aaaao-a3naq-cai"
+  },
   "autocorrelation": {
-    "ic": "moedy-iqaaa-aaaao-a3mtq-cai"
+    "ic": "fwkdl-2iaaa-aaaao-a3nba-cai"
   },
   "deviation": {
-    "ic": "magoq-taaaa-aaaao-a3msq-cai"
+    "ic": "frlf7-xqaaa-aaaao-a3nbq-cai"
   },
   "dexliquidity": {
-    "ic": "ndkhw-hyaaa-aaaao-a3mua-cai"
+    "ic": "femus-wyaaa-aaaao-a3nca-cai"
   },
   "rating_indexer": {
-    "ic": "oi4rv-baaaa-aaaao-a3m6q-cai"
+    "ic": "fdnsg-3aaaa-aaaao-a3ncq-cai"
+  },
+  "rating_indexer_entire_period": {
+    "ic": "eha5u-caaaa-aaaao-a3neq-cai"
+  },
+  "rating_indexer_30days": {
+    "ic": "eab3a-pyaaa-aaaao-a3nea-cai"
+  },
+  "txvolume": {
+    "ic": "fkoz2-niaaa-aaaao-a3nda-cai"
   },
   "variance": {
-    "ic": "nelbc-kaaaa-aaaao-a3muq-cai"
+    "ic": "fnp7o-aqaaa-aaaao-a3ndq-cai"
   }
 }
