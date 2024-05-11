@@ -370,12 +370,6 @@ fn _add_snapshot(snapshot: Snapshot) {
     _delete_snapshots();
 }
 
-#[ic_cdk::update]
-#[candid::candid_method(update)]
-async fn test_index() {
-    _index().await.unwrap();
-}
-
 fn weight(key: Key, fetch_key: String) -> f64 {
     TASKS.with(|tasks| {
         let default = 1.0;

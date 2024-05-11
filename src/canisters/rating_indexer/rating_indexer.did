@@ -82,7 +82,6 @@ service : {
   setup : () -> (Result_1);
   snapshots_len : () -> (nat64) query;
   tasks : () -> (vec Task) query;
-  test_index : () -> ();
   update_duration_seconds : (nat64) -> ();
   update_max_count : (nat64) -> ();
 }
